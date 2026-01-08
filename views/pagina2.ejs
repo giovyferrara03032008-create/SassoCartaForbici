@@ -8,20 +8,15 @@
 </head>
 <body>
 
-<!-- BARRA STATISTICHE -->
 <div class="barra-statistiche">
     <div class="stat">Partita: <%= numeroPartita %></div>
     <div class="stat">Punti <%= nomeGiocatore %>: <%= puntiGiocatore %></div>
     <div class="stat">Punti Utente online: <%= puntiMacchina %></div>
 </div>
 
-<!-- SCHERMO DI GIOCO -->
 <div class="schermo">
-
-    <!-- LATO UTENTE -->
     <div class="lato utente">
         <div class="titolo">Scegli il tuo segno <%= nomeGiocatore %></div>
-
         <div class="scelte">
             <% const opzioni = ['sasso', 'carta', 'forbici']; %>
             <% opzioni.forEach(scelta => { %>
@@ -32,8 +27,6 @@
                          onclick="scegliEParla(this.form, '<%= scelta %>')">
                     <img src="/<%= scelta %>.png" class="img-scelta">
                     </button>
-
-
                 </form>
                 <div class="nome"><%= scelta.charAt(0).toUpperCase() + scelta.slice(1) %></div>
             </div>
@@ -41,10 +34,8 @@
         </div>
     </div>
 
-    <!-- LATO MACCHINA -->
     <div class="lato macchina">
         <div class="titolo">Scelta utente online</div>
-
         <div class="scelte">
             <% opzioni.forEach(scelta => { %>
             <div class="box-scelta">
@@ -55,10 +46,8 @@
             <% }) %>
         </div>
     </div>
-
 </div>
 
-<!-- RISULTATI -->
 <% if (gioco && gioco.giocatore && gioco.computer) { %>
 <div class="pannello-risultati">
     <div class="righe-laterali">
@@ -86,22 +75,17 @@
 </div>
 <% } %>
 
-<!-- SCRIPT TTS DEFINITIVO -->
 <script>
-/* ============================================================
-   1) GESTIONE CLICK
-   ============================================================ */
+/* 1) GESTIONE CLICK INIZIALE */
 function scegliEParla(form, sceltaGiocatore) {
-    sessionStorage.setItem("sceltaDaLeggere", sceltaGiocatore);
+    // Salviamo la scelta per sapere che dobbiamo parlare al ricaricamento
+    sessionStorage.setItem("eseguiTTS", "true");
     form.submit();
 }
 
-/* ============================================================
-   2) LOGICA DI LETTURA DOPO IL REFRESH
-   ============================================================ */
+/* 2) LOGICA TTS AL REFRESH */
 window.addEventListener("DOMContentLoaded", () => {
-    const sceltaSalvata = sessionStorage.getItem("sceltaDaLeggere");
-    if (!sceltaSalvata) return;
+    if (sessionStorage.getItem("eseguiTTS") !== "true") return;
 
     const rigaGioElem = document.querySelector('.riga-gio');
     const rigaMacElem = document.querySelector('.riga-mac');
@@ -109,85 +93,72 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (!rigaGioElem) return;
 
-    // Estraiamo la nostra scelta
-    const sceltaAttuale = rigaGioElem.innerText.toLowerCase();
-    
-    // Dizionario fonetico per i segni
-    const segniNap = {
-        'sasso': " 'o sasso",
-        'carta': " 'a carta",
-        'forbici': " 'e forbice"
-    };
-
-    // Capire cosa ha scelto l'utente
+    // Costruzione testo napoletano
+    const segniNap = { 'sasso': "'o sasso", 'carta': "'a carta", 'forbici': "'e forbice" };
     let miaSceltaNap = "";
-    if (sceltaAttuale.includes("sasso")) miaSceltaNap = segniNap['sasso'];
-    else if (sceltaAttuale.includes("carta")) miaSceltaNap = segniNap['carta'];
-    else if (sceltaAttuale.includes("forbici")) miaSceltaNap = segniNap['forbici'];
+    const testoUtente = rigaGioElem.innerText.toLowerCase();
+    
+    if (testoUtente.includes("sasso")) miaSceltaNap = segniNap['sasso'];
+    else if (testoUtente.includes("carta")) miaSceltaNap = segniNap['carta'];
+    else if (testoUtente.includes("forbici")) miaSceltaNap = segniNap['forbici'];
 
-    // COSTRUZIONE DEL DISCORSO
     let discorso = "Guagliò, tu ha' scigliuto " + miaSceltaNap + ". ";
     
-    // LETTURA SCELTA AVVERSARIO (Migliorata)
     if (rigaMacElem) {
         const testoMacchina = rigaMacElem.innerText.toLowerCase();
         let sceltaMacNap = "";
-        
         if (testoMacchina.includes("sasso")) sceltaMacNap = segniNap['sasso'];
         else if (testoMacchina.includes("carta")) sceltaMacNap = segniNap['carta'];
         else if (testoMacchina.includes("forbici")) sceltaMacNap = segniNap['forbici'];
-
-        if (sceltaMacNap !== "") {
-            discorso += "Chillu là ha tirato " + sceltaMacNap + ". ";
-        }
+        if (sceltaMacNap) discorso += "Chillu là ha tirato " + sceltaMacNap + ". ";
     }
 
-    // Reazioni all'esito
     if (esitoElem) {
         let testoEsito = esitoElem.innerText.toLowerCase();
-        if (testoEsito.includes("vinto")) {
-            discorso += "Uè uè! Hai vinciuto tu! Si' troppo fort!";
-        } else if (testoEsito.includes("perso")) {
-            discorso += "uàà! Hai perzo... chille è cchiù furb' 'e te!";
-        } else {
-            discorso += "Simm' pari, facimm' n'ata mossa.";
-        }
+        if (testoEsito.includes("vinto")) discorso += "Uè uè! Hai vinciuto tu! Si' troppo fort!";
+        else if (testoEsito.includes("perso")) discorso += "uaa! Hai perzo... chille è cchiù furb' 'e te!";
+        else discorso += "Simm' pari, facimm' n'ata mossa.";
     }
 
-    function parla() {
-        speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(discorso);
-        u.lang = "it-IT";
-        u.rate = 1.0;  
-        u.pitch = 1.2; 
-        
+    // Funzione core per parlare
+    function avviaAudio() {
+        // Se sta già parlando, non sovrapporre
+        if (speechSynthesis.speaking) return;
+
+        speechSynthesis.cancel(); // Pulisce code precedenti
+        const utterance = new SpeechSynthesisUtterance(discorso);
+        utterance.lang = "it-IT";
+        utterance.rate = 0.9; // Leggermente più lento per chiarezza
+        utterance.pitch = 1.1;
+
+        // Cerchiamo la voce migliore (Google Italian è la top su Android)
         const voci = speechSynthesis.getVoices();
-        const voceMigliore = voci.find(v => v.lang.includes("it-IT") && (v.name.includes("Google") || v.name.includes("Alice") || v.name.includes("Premium"))) || 
-                             voci.find(v => v.lang.includes("it-IT"));
+        const voceMigliore = voci.find(v => v.name.includes("Google") && v.lang.includes("it")) || 
+                             voci.find(v => v.lang.includes("it"));
+        
+        if (voceMigliore) utterance.voice = voceMigliore;
 
-        if (voceMigliore) u.voice = voceMigliore;
-        speechSynthesis.speak(u);
+        speechSynthesis.speak(utterance);
+        
+        // Una volta parlato, puliamo la sessione
+        sessionStorage.removeItem("eseguiTTS");
     }
 
+    // TENTATIVO 1: Automatico (spesso bloccato dai browser)
     if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = parla;
+        speechSynthesis.onvoiceschanged = avviaAudio;
     }
-    if (speechSynthesis.getVoices().length > 0) {
-        parla();
-    }
-    
-    sessionStorage.removeItem("sceltaDaLeggere");
+    setTimeout(avviaAudio, 300);
+
+    // TENTATIVO 2: Sblocco al primo tocco (Fondamentale per Smartphone)
+    // Se il browser ha bloccato l'audio automatico, appena l'utente tocca 
+    // lo schermo per vedere il risultato, la voce partirà.
+    document.body.addEventListener('touchstart', avviaAudio, { once: true });
+    document.body.addEventListener('click', avviaAudio, { once: true });
 });
 
-/* ============================================================
-   3) STOP AUTOMATICO
-   ============================================================ */
-window.addEventListener("beforeunload", () => {
-    speechSynthesis.cancel();
-});
-document.addEventListener("visibilitychange", () => {
-    if (document.hidden) speechSynthesis.cancel();
-});
+/* 3) STOP SE CHIUDI */
+window.addEventListener("beforeunload", () => speechSynthesis.cancel());
 </script>
 
 </body>

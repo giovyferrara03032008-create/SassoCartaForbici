@@ -63,7 +63,7 @@
 <div class="pannello-risultati">
     <div class="righe-laterali">
         <div class="riga-gio">Hai scelto: <%= gioco.giocatore.scelta %></div>
-        <div class="riga-mac">Il l'utente online ha scelto: <%= gioco.computer.scelta %></div>
+        <div class="riga-mac">l'utente online ha scelto: <%= gioco.computer.scelta %></div>
     </div>
 
     <% 
@@ -89,79 +89,106 @@
 <!-- SCRIPT TTS DEFINITIVO -->
 <script>
 /* ============================================================
-   1) L’UTENTE CLICCA → SALVIAMO LA SCELTA PER IL PROSSIMO ROUND
+   1) GESTIONE CLICK
    ============================================================ */
 function scegliEParla(form, sceltaGiocatore) {
-    // Salva la scelta SOLO per il prossimo caricamento pagina
     sessionStorage.setItem("sceltaDaLeggere", sceltaGiocatore);
-
-    // Invia subito il form (la pagina si ricarica)
     form.submit();
 }
 
-
 /* ============================================================
-   2) DOPO IL REFRESH → LEGGIAMO SOLO SE LA SCELTA È COERENTE
+   2) LOGICA DI LETTURA DOPO IL REFRESH
    ============================================================ */
 window.addEventListener("DOMContentLoaded", () => {
-
     const sceltaSalvata = sessionStorage.getItem("sceltaDaLeggere");
-
-    // Se non c'è una scelta salvata → non parlare
     if (!sceltaSalvata) return;
 
-    // Prendiamo la scelta mostrata dal server
-    const sceltaMostrataElem = document.querySelector('.riga-gio');
-    if (!sceltaMostrataElem) return;
+    const rigaGioElem = document.querySelector('.riga-gio');
+    const rigaMacElem = document.querySelector('.riga-mac');
+    const esitoElem = document.querySelector('.esito-final');
 
-    const sceltaAttuale = sceltaMostrataElem.innerText.replace("Hai scelto: ", "").trim();
+    if (!rigaGioElem) return;
 
-    // Se la scelta del server NON coincide → non leggere (protezione totale)
-    if (sceltaAttuale !== sceltaSalvata) {
-        sessionStorage.removeItem("sceltaDaLeggere");
-        return;
+    // Estraiamo la nostra scelta
+    const sceltaAttuale = rigaGioElem.innerText.toLowerCase();
+    
+    // Dizionario fonetico per i segni
+    const segniNap = {
+        'sasso': " 'o sasso",
+        'carta': " 'a carta",
+        'forbici': " 'e forbice"
+    };
+
+    // Capire cosa ha scelto l'utente
+    let miaSceltaNap = "";
+    if (sceltaAttuale.includes("sasso")) miaSceltaNap = segniNap['sasso'];
+    else if (sceltaAttuale.includes("carta")) miaSceltaNap = segniNap['carta'];
+    else if (sceltaAttuale.includes("forbici")) miaSceltaNap = segniNap['forbici'];
+
+    // COSTRUZIONE DEL DISCORSO
+    let discorso = "Guagliò, tu ha' scigliuto " + miaSceltaNap + ". ";
+    
+    // LETTURA SCELTA AVVERSARIO (Migliorata)
+    if (rigaMacElem) {
+        const testoMacchina = rigaMacElem.innerText.toLowerCase();
+        let sceltaMacNap = "";
+        
+        if (testoMacchina.includes("sasso")) sceltaMacNap = segniNap['sasso'];
+        else if (testoMacchina.includes("carta")) sceltaMacNap = segniNap['carta'];
+        else if (testoMacchina.includes("forbici")) sceltaMacNap = segniNap['forbici'];
+
+        if (sceltaMacNap !== "") {
+            discorso += "Chillu là ha tirato " + sceltaMacNap + ". ";
+        }
     }
 
-    // Cancella subito per evitare doppie letture
+    // Reazioni all'esito
+    if (esitoElem) {
+        let testoEsito = esitoElem.innerText.toLowerCase();
+        if (testoEsito.includes("vinto")) {
+            discorso += "Uè uè! Hai vinciuto tu! Si' troppo fort!";
+        } else if (testoEsito.includes("perso")) {
+            discorso += "uàà! Hai perzo... chille è cchiù furb' 'e te!";
+        } else {
+            discorso += "Simm' pari, facimm' n'ata mossa.";
+        }
+    }
+
+    function parla() {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(discorso);
+        u.lang = "it-IT";
+        u.rate = 1.0;  
+        u.pitch = 1.2; 
+        
+        const voci = speechSynthesis.getVoices();
+        const voceMigliore = voci.find(v => v.lang.includes("it-IT") && (v.name.includes("Google") || v.name.includes("Alice") || v.name.includes("Premium"))) || 
+                             voci.find(v => v.lang.includes("it-IT"));
+
+        if (voceMigliore) u.voice = voceMigliore;
+        speechSynthesis.speak(u);
+    }
+
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = parla;
+    }
+    if (speechSynthesis.getVoices().length > 0) {
+        parla();
+    }
+    
     sessionStorage.removeItem("sceltaDaLeggere");
-
-    // Prendi informazioni del computer ed esito
-    const rigaMacchina = document.querySelector('.riga-mac');
-    const esito = document.querySelector('.esito-final');
-
-    let testo = `Hai scelto ${sceltaAttuale}.`;
-    if (rigaMacchina) testo += ` ${rigaMacchina.innerText}.`;
-    if (esito) testo += ` ${esito.innerText}.`;
-
-    // Stop eventuali letture precedenti
-    speechSynthesis.cancel();
-
-    // Avvia la lettura
-    const u = new SpeechSynthesisUtterance(testo);
-    u.lang = "it-IT";
-    u.rate = window.innerWidth <= 768 ? 1.1 : 1.35;
-    u.pitch = 1;
-    speechSynthesis.speak(u);
 });
 
-
 /* ============================================================
-   3) STOP AUTOMATICO DELLA VOCE QUANDO SI CAMBIA PAGINA
+   3) STOP AUTOMATICO
    ============================================================ */
 window.addEventListener("beforeunload", () => {
     speechSynthesis.cancel();
 });
-
-// Per iPhone/iPad e tab switching
 document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-        speechSynthesis.cancel();
-    }
+    if (document.hidden) speechSynthesis.cancel();
 });
-
-
 </script>
-
 
 </body>
 </html>

@@ -63,6 +63,8 @@ body::before {
     animation: titoloMedievale 4s infinite alternate;
 }
 
+
+
 @keyframes titoloMedievale {
     0% {
         text-shadow: 2px 2px 0 #e6c98a, 0 0 10px rgba(120,70,20,0.4);
@@ -173,5 +175,108 @@ body::before {
         width: 80%;
         font-size: 1.1rem;
         padding: 12px 25px;
+    }
+}
+
+/* =============================================
+   RIPRISTINO: CARTIGLIO ANTICO BORDI MARCATI
+   ============================================= */
+
+/* Distanza dal fondo per non tagliare il cartiglio */
+body {
+    padding-bottom: 130px;
+}
+
+.contenitore {
+    position: relative;
+}
+
+/* Box dell'autore con bordi irregolari e bruciati */
+.contenitore .contenitore {
+    position: absolute;
+    bottom: -90px; 
+    left: -20px;
+    width: auto;
+    min-width: 250px;
+    padding: 25px 45px;
+    
+    /* Colore base dorato antico */
+    background: #d4a76a;
+    
+    /* Forma irregolare "vissuta" */
+    clip-path: polygon(
+        2% 18%, 15% 6%, 35% 14%, 55% 4%, 75% 12%, 92% 3%, 98% 18%, 
+        96% 45%, 100% 70%, 94% 92%, 98% 98%, 78% 94%, 55% 100%, 
+        35% 92%, 18% 100%, 4% 94%, 0% 70%, 5% 40%, 1% 20%
+    );
+
+    /* EFFETTO BORDI BRUCIATI: Gradiente radiale scuro sui bordi */
+    background-image: radial-gradient(
+        circle, 
+        #f2d9a0 30%, 
+        #c9ad7a 60%, 
+        #5a2e0c 100%
+    );
+
+    /* Ombra esterna che segue perfettamente i bordi irregolari */
+    filter: drop-shadow(10px 10px 15px rgba(0,0,0,0.6));
+    
+    transform: rotate(-4deg);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 100;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Ombra interna per rendere i bordi ancora più scuri e definiti */
+.contenitore .contenitore::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 25px 10px rgba(43, 22, 8, 0.5);
+    pointer-events: none;
+}
+
+.contenitore .contenitore:hover {
+    transform: rotate(0deg) scale(1.08) translateY(-5px);
+    filter: drop-shadow(15px 15px 25px rgba(0,0,0,0.7));
+}
+
+/* Scritta "AUTORE" - Marcata e solenne */
+.titolo-autore {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #1a0f06;
+    text-transform: uppercase;
+    letter-spacing: 7px; /* Spaziatura larga */
+    margin-bottom: 5px;
+    text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid rgba(0,0,0,0.3);
+    width: 100%;
+    text-align: center;
+}
+
+/* Nome Autore - Rosso scuro regale */
+.nome-autore {
+    font-size: 1.6rem !important;
+    color: #7a0000 !important;
+    font-weight: bold;
+    font-style: italic;
+    margin: 0;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .contenitore .contenitore {
+        position: relative;
+        bottom: 0;
+        left: 0;
+        margin: 80px auto 20px auto;
+        transform: rotate(-1deg);
     }
 }

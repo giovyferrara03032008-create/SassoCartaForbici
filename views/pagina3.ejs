@@ -55,5 +55,60 @@
         });
     </script>
 
+    <script>
+window.addEventListener("DOMContentLoaded", () => {
+    // 1. Recuperiamo il testo dal paragrafo del messaggio
+    const messaggioElem = document.querySelector('.messaggio p');
+    if (!messaggioElem) return;
+
+    const testoOriginale = messaggioElem.innerText;
+    let discorso = "";
+
+    // 2. Traduzione fonetica in Napoletano "carino"
+    if (testoOriginale.includes("Complimenti")) {
+        // Messaggio di vittoria
+        discorso = "Uè uè, facimme festa! Complimenti <%= nomeGiocatore %>, ha' vinciuto tu e ha' fatto tre punte! ";
+    } else {
+        // Messaggio di sconfitta
+        discorso = "Uè uè, <%= nomeGiocatore %>... chillu là ha fatto tre punte primma 'e te. Tu ha' perzo! Ma nun te preoccupà, riprov!";
+    }
+
+    // Aggiungiamo il saluto finale
+    discorso += " Arrivederci e statte bbuono!";
+
+    // 3. Funzione per parlare con la voce "Alice/Google"
+    function parla() {
+        // Ferma l'audio di sottofondo se disturba la voce
+        const audioSottofondo = document.getElementById("audioFinale");
+        if(audioSottofondo) audioSottofondo.volume = 0.2; // Abbassa il volume della musica
+
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(discorso);
+        u.lang = "it-IT";
+        u.rate = 1.0;  
+        u.pitch = 1.2; // Tono espressivo napoletano
+
+        const voci = speechSynthesis.getVoices();
+        const voceMigliore = voci.find(v => v.lang.includes("it-IT") && v.name.includes("Google")) || 
+                             voci.find(v => v.lang.includes("it-IT") && v.name.includes("Alice")) ||
+                             voci.find(v => v.lang.includes("it-IT"));
+
+        if (voceMigliore) u.voice = voceMigliore;
+        
+        speechSynthesis.speak(u);
+    }
+
+    // Caricamento voci per Chrome
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = parla;
+    }
+    if (speechSynthesis.getVoices().length > 0) {
+        parla();
+    }
+});
+
+// Stop se l'utente esce
+window.addEventListener("beforeunload", () => speechSynthesis.cancel());
+</script>
 </body>
 </html>

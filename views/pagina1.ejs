@@ -31,10 +31,12 @@
 
         <!-- Form per inserire il nome e iniziare -->
         <div class="bottone-gioca-di-nuovo">
-            <form action="/gioco" method="post" class="form-gioco">
-                <input type="text" name="nome" placeholder="Inserisci il tuo nome" required class="input-giocatore">
-                <button type="submit" class="bottone-gioca">Gioca online</button>
-            </form>
+            <div class="bottone-gioca-di-nuovo">
+    <form action="/inizia" method="POST" class="form-gioco">
+        <input type="text" name="nome" placeholder="Inserisci il tuo nome" required class="input-giocatore">
+        <button type="submit" class="bottone-gioca">Gioca online</button>
+    </form>
+</div>
         </div>
         <div class="contenitore">
             <div class="info-autore">

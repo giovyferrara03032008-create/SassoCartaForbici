@@ -3,173 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sasso, Carta, Forbici</title>
+    <title>Morra Medievale - Battaglia</title>
     <link rel="stylesheet" href="/style2.css">
 </head>
 <body>
 
-<div class="barra-statistiche">
-    <div class="stat">Partita: <%= numeroPartita %></div>
-    <div class="stat">Punti <%= nomeGiocatore %>: <%= puntiGiocatore %></div>
-    <div class="stat">Punti Utente online: <%= puntiMacchina %></div>
-</div>
+    <div class="barra-statistiche">
+        <div class="stat">Scontro n. <b><%= numeroPartita %></b></div>
+        <div class="stat">Guerriero: <b><%= nomeGiocatore %> (<%= puntiGiocatore %>)</b></div>
+        <div class="stat">Nemico: <b>Punti <%= puntiMacchina %></b></div>
+        <div class="stat">Vittorie Totali: <b><%= vittoriaGiocatore %> - <%= vittoriaMacchina %></b></div>
+    </div>
 
-<div class="schermo">
-    <div class="lato utente">
-        <div class="titolo">Scegli il tuo segno <%= nomeGiocatore %></div>
-        <div class="scelte">
-            <% const opzioni = ['sasso', 'carta', 'forbici']; %>
-            <% opzioni.forEach(scelta => { %>
-            <div class="box-scelta">
-                <form class="form-scelta" action="/gioco" method="post">
-                    <input type="hidden" name="scelta" value="<%= scelta %>">
-                    <button class="btn-scelta" type="button"
-                         onclick="scegliEParla(this.form, '<%= scelta %>')">
-                    <img src="/<%= scelta %>.png" class="img-scelta">
-                    </button>
-                </form>
-                <div class="nome"><%= scelta.charAt(0).toUpperCase() + scelta.slice(1) %></div>
+    <div class="schermo">
+        <div class="lato utente">
+            <div class="titolo">Scegli la tua arma, <%= nomeGiocatore %></div>
+            <div class="scelte">
+                <% const opzioni = ['sasso', 'carta', 'forbici']; %>
+                <% opzioni.forEach(scelta => { %>
+                <div class="box-scelta">
+                    <form class="form-scelta" action="/gioco" method="post">
+                        <input type="hidden" name="scelta" value="<%= scelta %>">
+                        <button class="btn-scelta" type="button" onclick="inviaScelta(this.form)">
+                            <img src="/<%= scelta %>.png" class="img-scelta">
+                        </button>
+                    </form>
+                    <div class="nome">
+                        <%= scelta.charAt(0).toUpperCase() + scelta.slice(1) %>
+                    </div>
+                </div>
+                <% }) %>
             </div>
-            <% }) %>
+        </div>
+
+        <div class="lato macchina">
+            <div class="titolo">Mossa dell'Avversario</div>
+            <div class="scelte">
+                <% opzioni.forEach(opt => { %>
+                <div class="box-scelta">
+                    <img src="/<%= opt %>.png"
+                        class="img-scelta macchina-img <%= gioco && gioco.computer && gioco.computer.scelta === opt ? 'scelta-attiva' : '' %>"
+                        style="<%= gioco && gioco.computer && gioco.computer.scelta === opt ? '' : 'opacity: 0.2; filter: grayscale(1);' %>">
+                    <div class="nome">
+                        <%= opt.charAt(0).toUpperCase() + opt.slice(1) %>
+                    </div>
+                </div>
+                <% }) %>
+            </div>
         </div>
     </div>
 
-    <div class="lato macchina">
-        <div class="titolo">Scelta utente online</div>
-        <div class="scelte">
-            <% opzioni.forEach(scelta => { %>
-            <div class="box-scelta">
-                <img src="/<%= scelta %>.png"
-                    class="img-scelta macchina-img <%= gioco && gioco.computer && gioco.computer.scelta === scelta ? 'scelta-attiva' : '' %>">
-                <div class="nome"><%= scelta.charAt(0).toUpperCase() + scelta.slice(1) %></div>
-            </div>
-            <% }) %>
+    <% if (gioco && gioco.giocatore && gioco.computer) { %>
+    <div class="pannello-risultati">
+        <div class="righe-laterali">
+            <div class="riga-gio">Hai scelto: <%= gioco.giocatore.scelta %></div>
+            <div class="riga-mac">L'avversario ha scelto: <%= gioco.computer.scelta %></div>
         </div>
+
+        <% 
+            let risultato = "Hai perso!";
+            let classeRisultato = "esito-perso";
+            if (gioco.giocatore.scelta === gioco.computer.scelta) {
+                risultato = "Pareggio!";
+                classeRisultato = "esito-pareggio";
+            } else if (
+                (gioco.giocatore.scelta === "sasso" && gioco.computer.scelta === "forbici") ||
+                (gioco.giocatore.scelta === "carta" && gioco.computer.scelta === "sasso") ||
+                (gioco.giocatore.scelta === "forbici" && gioco.computer.scelta === "carta")
+            ) {
+                risultato = "Vittoria!";
+                classeRisultato = "esito-vinto";
+            }
+        %>
+        <div class="esito-final <%= classeRisultato %>"><%= risultato %></div>
     </div>
-</div>
+    <% } %>
 
-<% if (gioco && gioco.giocatore && gioco.computer) { %>
-<div class="pannello-risultati">
-    <div class="righe-laterali">
-        <div class="riga-gio">Hai scelto: <%= gioco.giocatore.scelta %></div>
-        <div class="riga-mac">l'utente online ha scelto: <%= gioco.computer.scelta %></div>
-    </div>
-
-    <% 
-        let risultato = "Hai perso!";
-        let classeRisultato = "esito-perso";
-
-        if (gioco.giocatore.valore === gioco.computer.valore) {
-            risultato = "Hai pareggiato!";
-            classeRisultato = "esito-pareggio";
-        } else if (
-            (gioco.giocatore.valore === 1 && gioco.computer.valore === 3) ||
-            (gioco.giocatore.valore === 2 && gioco.computer.valore === 1) ||
-            (gioco.giocatore.valore === 3 && gioco.computer.valore === 2)
-        ) {
-            risultato = "Hai vinto!";
-            classeRisultato = "esito-vinto";
-        }
-    %>
-    <div class="esito-final <%= classeRisultato %>"><%= risultato %></div>
-</div>
-<% } %>
-
-<script>
-async function scegliEParla(form, sceltaGiocatore) {
-    // 1. SBLOCCO IMMEDIATO AUDIO (Fondamentale per Chrome Mobile)
-    // Creiamo un'istanza silenziosa al momento del tocco dell'utente
-    const sblocco = new SpeechSynthesisUtterance("");
-    speechSynthesis.speak(sblocco);
-
-    const formData = new FormData(form);
-    const params = new URLSearchParams(formData);
-
-    try {
-        // 2. INVIO DATI SENZA RICARICARE (AJAX)
-        const response = await fetch('/gioco', {
-            method: 'POST',
-            body: params,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-
-        if (response.ok) {
-            // Invece di form.submit(), forziamo il refresh ma mantenendo il "trigger"
-            // Se preferisci non usare AJAX complesso, usiamo questo trucco:
-            sessionStorage.setItem("eseguiTTS", "true");
-            form.submit();
-        }
-    } catch (e) {
+    <script>
+    function inviaScelta(form) {
+        // Sblocco preventivo silenzioso per evitare blocchi browser
+        const sblocco = new SpeechSynthesisUtterance("");
+        window.speechSynthesis.speak(sblocco);
+        
+        sessionStorage.setItem("eseguiTTS", "true");
         form.submit();
     }
-}
 
-// LOGICA AL CARICAMENTO
-window.addEventListener("load", () => {
-    // Carica le voci subito
-    speechSynthesis.getVoices();
-
-    if (sessionStorage.getItem("eseguiTTS") === "true") {
+    window.addEventListener("load", () => {
+        const synth = window.speechSynthesis;
         
-        // Recupero dati dai div esistenti (EJS li ha già stampati)
-        const rigaGio = document.querySelector('.riga-gio');
-        const rigaMac = document.querySelector('.riga-mac');
-        const esitoElem = document.querySelector('.esito-final');
+        if (sessionStorage.getItem("eseguiTTS") === "true") {
+            const esitoElem = document.querySelector('.esito-final');
 
-        if (!rigaGio) return;
+            if (esitoElem) {
+                const segniNap = { 'sasso': "'o sasso", 'carta': "'a carta", 'forbici': "'e forbice" };
+                let gioScelta = "<%= gioco ? gioco.giocatore.scelta : '' %>";
+                let macScelta = "<%= gioco ? gioco.computer.scelta : '' %>";
+                
+                let discorso = "Guagliò, tu ha' scigliuto " + segniNap[gioScelta] + ". ";
+                discorso += "Chillu là ha tirato " + segniNap[macScelta] + ". ";
 
-        const segniNap = { 'sasso': "'o sasso", 'carta': "'a carta", 'forbici': "'e forbice" };
-        let testo = rigaGio.innerText.toLowerCase();
-        let napScelta = testo.includes("sasso") ? segniNap.sasso : (testo.includes("carta") ? segniNap.carta : segniNap.forbici);
+                let eText = esitoElem.innerText.toLowerCase();
+                if (eText.includes("vittoria")) discorso += "Uè uè! Hai vinciuto tu!";
+                else if (eText.includes("perso")) discorso += "Aggia pacienza, hai perzo.";
+                else discorso += "Simm' pari.";
 
-        let discorso = "Guagliò, tu ha' scigliuto " + napScelta + ". ";
+                const parla = () => {
+                    // Fondamentale: cancella ogni mormorio o voce precedente prima di iniziare
+                    synth.cancel();
 
-        if (rigaMac) {
-            let mText = rigaMac.innerText.toLowerCase();
-            let napMac = mText.includes("sasso") ? segniNap.sasso : (mText.includes("carta") ? segniNap.carta : segniNap.forbici);
-            discorso += "Chillu là ha tirato " + napMac + ". ";
+                    const utterance = new SpeechSynthesisUtterance(discorso);
+                    utterance.lang = "it-IT";
+                    utterance.rate = 0.9; 
+                    
+                    // Cerchiamo una voce maschile se disponibile, altrimenti la prima it-IT
+                    const voci = synth.getVoices();
+                    const voceMaschile = voci.find(v => (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('cosimo') || v.name.toLowerCase().includes('diego')) && v.lang.includes('it')) 
+                                        || voci.find(v => v.lang.includes('it'));
+                    
+                    if(voceMaschile) utterance.voice = voceMaschile;
+
+                    utterance.onend = () => {
+                        sessionStorage.removeItem("eseguiTTS");
+                        controllaFinePartita();
+                    };
+
+                    synth.speak(utterance);
+                };
+
+                // Su molti browser 'load' basta se abbiamo sbloccato prima. 
+                // Se synth.speaking è già true o ci sono problemi, cancel() ha pulito la coda.
+                parla();
+            }
+        } else {
+            controllaFinePartita();
         }
 
-        if (esitoElem) {
-            let eText = esitoElem.innerText.toLowerCase();
-            if (eText.includes("vinto")) discorso += "Uè uè! Hai vinciuto tu!";
-            else if (eText.includes("perso")) discorso += "Aggia pacienza, hai perzo.";
-            else discorso += "Simm' pari.";
+        function controllaFinePartita() {
+            const pG = parseInt("<%= puntiGiocatore %>");
+            const pM = parseInt("<%= puntiMacchina %>");
+            if (pG >= 3 || pM >= 3) {
+                setTimeout(() => {
+                    window.location.href = "/pagina3";
+                }, 500); 
+            }
         }
-
-        // FUNZIONE PARLA CORRETTA PER CHROME
-        const parlaChrome = () => {
-            speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(discorso);
-            utterance.lang = "it-IT";
-            utterance.rate = 1.0;
-            
-            // Forza la scelta della voce Google se disponibile
-            const voci = speechSynthesis.getVoices();
-            utterance.voice = voci.find(v => v.name.includes("Google") && v.lang.includes("it")) || voci.find(v => v.lang.includes("it"));
-            
-            speechSynthesis.speak(utterance);
-            sessionStorage.removeItem("eseguiTTS");
-        };
-
-        // ESECUZIONE
-        // Su Chrome Mobile spesso serve un altro tocco, lo leghiamo a tutto il corpo della pagina
-        parlaChrome();
-        document.body.addEventListener('touchstart', parlaChrome, { once: true });
-        document.body.addEventListener('click', parlaChrome, { once: true });
-    }
-
-    // GESTIONE FINE PARTITA (3 PUNTI)
-    const pG = parseInt("<%= puntiGiocatore %>");
-    const pM = parseInt("<%= puntiMacchina %>");
-
-    if (pG >= 3 || pM >= 3) {
-        // Aspetta che finisca di parlare (circa 3-4 secondi) e poi vai alla fine
-        setTimeout(() => {
-            window.location.href = "/risultato-finale"; // ASSICURATI CHE QUESTA ROTTA ESISTA
-        }, 4500);
-    }
-});
-</script>
+    });
+    </script>
 </body>
 </html>

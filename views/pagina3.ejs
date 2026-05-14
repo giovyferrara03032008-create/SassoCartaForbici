@@ -29,7 +29,7 @@
 
         <div class="bottone-gioca-di-nuovo">
             <form action="/pagina2" method="get">
-                <button type="submit" class="bottone">
+                <button type="submit" class="bottone" onclick="stoppaTutto()">
                     Clicca per giocare un altro Round online
                 </button>
             </form>
@@ -37,7 +37,7 @@
 
         <div class="bottone-gioca-di-nuovo">
             <form action="/" method="get">
-                <button type="submit" class="bottone">
+                <button type="submit" class="bottone" onclick="stoppaTutto()">
                     Clicca Qui per tornare alla Home
                 </button>
             </form>
@@ -45,58 +45,75 @@
     </div>
 
     <script>
+    const synth = window.speechSynthesis;
+    const audioSottofondo = document.getElementById("audioFinale");
+
+    // Definiamo la funzione di attivazione fuori per poterla rimuovere
+    function attivaTutto() {
+        if (audioSottofondo) {
+            audioSottofondo.volume = 0.3;
+            audioSottofondo.play().catch(e => console.log("Audio MP3 bloccato"));
+        }
+
+        synth.cancel();
+        
+        // Recuperiamo il discorso (costruito sotto)
+        const u = new SpeechSynthesisUtterance(window.discorsoGlobale);
+        u.lang = "it-IT";
+        u.rate = 1.0;
+        
+        const voci = synth.getVoices();
+        const voceMigliore = voci.find(v => v.lang.includes("it-IT") && v.name.includes("Google")) || 
+                             voci.find(v => v.lang.includes("it-IT"));
+        
+        if (voceMigliore) u.voice = voceMigliore;
+        synth.speak(u);
+    }
+
+    // Funzione di STOP ASSOLUTO
+    function stoppaTutto() {
+        // 1. Rimuoviamo immediatamente gli ascoltatori che farebbero ripartire la voce
+        document.body.removeEventListener('touchstart', attivaTutto);
+        document.body.removeEventListener('click', attivaTutto);
+        
+        // 2. Cancelliamo la voce in corso
+        synth.cancel();
+        
+        // 3. Fermiamo l'audio MP3
+        if (audioSottofondo) {
+            audioSottofondo.pause();
+            audioSottofondo.currentTime = 0;
+        }
+        
+        console.log("Audio e voce stoppati forzatamente.");
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
-        const audioSottofondo = document.getElementById("audioFinale");
         const messaggioElem = document.querySelector('.messaggio p');
         if (!messaggioElem) return;
 
         const testoOriginale = messaggioElem.innerText;
-        let discorso = "";
+        window.discorsoGlobale = "";
 
-        // Traduzione Napoletana
         if (testoOriginale.includes("Complimenti")) {
-            discorso = "Uè uè, facimme festa! Complimenti <%= nomeGiocatore %>, ha' vinciuto tu e ha' fatto tre punte! ";
+            window.discorsoGlobale = "Uè uè, facimme festa! Complimenti <%= nomeGiocatore %>, ha' vinciuto tu e ha' fatto tre punte! ";
         } else {
-            discorso = "Uè uè, <%= nomeGiocatore %>... chillu là ha fatto tre punte primma 'e te. Tu ha' perzo! Ma nun te preoccupà, riprova!";
+            window.discorsoGlobale = "Uè uè, <%= nomeGiocatore %>... chillu là ha fatto tre punte primma 'e te. Tu ha' perzo! Ma nun te preoccupà, riprova!";
         }
-        discorso += " Arrivederci e statte bbuono!";
+        window.discorsoGlobale += " Arrivederci e statte bbuono!";
 
-        function attivaTutto() {
-            // 1. Prova a far partire l'audio MP3
-            if (audioSottofondo) {
-                audioSottofondo.volume = 0.3; // Volume basso per non coprire la voce
-                audioSottofondo.play().catch(e => console.log("Audio MP3 bloccato"));
-            }
+        // Avvio ritardato (per PC)
+        setTimeout(() => {
+            if (!synth.speaking) attivaTutto();
+        }, 500);
 
-            // 2. Prova a far partire la voce
-            speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(discorso);
-            u.lang = "it-IT";
-            u.rate = 1.0;
-            u.pitch = 1.1;
-
-            const voci = speechSynthesis.getVoices();
-            const voceMigliore = voci.find(v => v.lang.includes("it-IT") && v.name.includes("Google")) || 
-                                 voci.find(v => v.lang.includes("it-IT"));
-            
-            if (voceMigliore) u.voice = voceMigliore;
-            
-            speechSynthesis.speak(u);
-        }
-
-        // TENTATIVO AUTOMATICO (PC)
-        setTimeout(attivaTutto, 500);
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = attivaTutto;
-        }
-
-        // SBLOCCO PER TELEFONO (GOOGLE CHROME / SAFARI)
-        // Fondamentale: al primo tocco dell'utente parte tutto
+        // Sblocco per mobile: aggiungiamo gli ascoltatori
         document.body.addEventListener('touchstart', attivaTutto, { once: true });
         document.body.addEventListener('click', attivaTutto, { once: true });
-    });
 
-    window.addEventListener("beforeunload", () => speechSynthesis.cancel());
+        // Sicurezza per chiusura tab
+        window.addEventListener("pagehide", stoppaTutto);
+    });
     </script>
 </body>
 </html>

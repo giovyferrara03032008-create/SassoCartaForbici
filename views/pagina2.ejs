@@ -11,7 +11,7 @@
     <div class="barra-statistiche">
         <div class="stat">Scontro n. <b><%= numeroPartita %></b></div>
         <div class="stat">Guerriero: <b><%= nomeGiocatore %> (<%= puntiGiocatore %>)</b></div>
-        <div class="stat">Nemico: <b>Punti <%= puntiMacchina %></b></div>
+        <div class="stat">Nemico: <b>Punti (<%= puntiMacchina %>)</b></div>
         <div class="stat">Vittorie Totali: <b><%= vittoriaGiocatore %> - <%= vittoriaMacchina %></b></div>
     </div>
 
@@ -81,10 +81,8 @@
 
     <script>
     function inviaScelta(form) {
-        // Sblocco preventivo silenzioso per evitare blocchi browser
         const sblocco = new SpeechSynthesisUtterance("");
         window.speechSynthesis.speak(sblocco);
-        
         sessionStorage.setItem("eseguiTTS", "true");
         form.submit();
     }
@@ -109,19 +107,16 @@
                 else discorso += "Simm' pari.";
 
                 const parla = () => {
-                    // Fondamentale: cancella ogni mormorio o voce precedente prima di iniziare
                     synth.cancel();
-
                     const utterance = new SpeechSynthesisUtterance(discorso);
                     utterance.lang = "it-IT";
                     utterance.rate = 0.9; 
                     
-                    // Cerchiamo una voce maschile se disponibile, altrimenti la prima it-IT
                     const voci = synth.getVoices();
-                    const voceMaschile = voci.find(v => (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('cosimo') || v.name.toLowerCase().includes('diego')) && v.lang.includes('it')) 
-                                        || voci.find(v => v.lang.includes('it'));
+                    const voceMigliore = voci.find(v => v.name.includes('Google') && v.lang.includes('it')) || 
+                                         voci.find(v => v.lang.includes('it'));
                     
-                    if(voceMaschile) utterance.voice = voceMaschile;
+                    if(voceMigliore) utterance.voice = voceMigliore;
 
                     utterance.onend = () => {
                         sessionStorage.removeItem("eseguiTTS");
@@ -131,9 +126,18 @@
                     synth.speak(utterance);
                 };
 
-                // Su molti browser 'load' basta se abbiamo sbloccato prima. 
-                // Se synth.speaking è già true o ci sono problemi, cancel() ha pulito la coda.
+                // Tentativo automatico
                 parla();
+
+                // FONDAMENTALE PER SAFARI MOBILE:
+                // Se l'utente tocca lo schermo (perché il primo tentativo è fallito), riprova a parlare
+                document.body.addEventListener('touchstart', () => {
+                    if (!synth.speaking) parla();
+                }, { once: true });
+                
+                document.body.addEventListener('click', () => {
+                    if (!synth.speaking) parla();
+                }, { once: true });
             }
         } else {
             controllaFinePartita();

@@ -1,36 +1,35 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="<%= lingua %>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fine Partita</title>
+    <title><%= t.arrivederci %></title>
     <link rel="stylesheet" href="/style3.css">
 </head>
-
 <body>
 
     <audio id="audioFinale" src="/<%= audioFile %>" preload="auto"></audio>
 
     <div class="contenitore-fine">
-        <div class="stat">Vittorie <%= nomeGiocatore %>: <%= vittoriaGiocatore %></div>
-        <div class="stat">Vittorie utenti online: <%= vittoriaMacchina %></div>
+        <div class="stat"><%= t.guerriero %> <%= nomeGiocatore %>: <%= vittoriaGiocatore %></div>
+        <div class="stat"><%= t.nemico %>: <%= vittoriaMacchina %></div>
 
         <div class="messaggio">
             <% if (puntiGiocatore === 3) { %>
-                <p>Complimenti <%= nomeGiocatore %>! Hai raggiunto per primo 3 punti!!</p>
+                <p><%= t.complimenti.replace('%nome%', nomeGiocatore) %></p>
                 <img src="/vittoria.png" width="200">
             <% } else { %>
-                <p>Mi dispiace <%= nomeGiocatore %>, l'utente online ha raggiunto per prima 3 punti... Riprova!</p>
+                <p><%= t.dispiace.replace('%nome%', nomeGiocatore) %></p>
                 <img src="/perdita.png">
             <% } %>
         </div>
 
-        <div class="saluto">Arrivederci</div>
+        <div class="saluto"><%= t.arrivederci %></div>
 
         <div class="bottone-gioca-di-nuovo">
             <form action="/pagina2" method="get">
                 <button type="submit" class="bottone" onclick="stoppaTutto()">
-                    Clicca per giocare un altro Round online
+                    <%= t.btnRound %>
                 </button>
             </form>
         </div>
@@ -38,7 +37,7 @@
         <div class="bottone-gioca-di-nuovo">
             <form action="/" method="get">
                 <button type="submit" class="bottone" onclick="stoppaTutto()">
-                    Clicca Qui per tornare alla Home
+                    <%= t.btnHome %>
                 </button>
             </form>
         </div>
@@ -47,8 +46,9 @@
     <script>
     const synth = window.speechSynthesis;
     const audioSottofondo = document.getElementById("audioFinale");
+    const linguaAttuale = "<%= lingua %>";
+    const langCode = linguaAttuale === "it" ? "it-IT" : "en-US";
 
-    // Definiamo la funzione di attivazione fuori per poterla rimuovere
     function attivaTutto() {
         if (audioSottofondo) {
             audioSottofondo.volume = 0.3;
@@ -56,62 +56,59 @@
         }
 
         synth.cancel();
-        
-        // Recuperiamo il discorso (costruito sotto)
         const u = new SpeechSynthesisUtterance(window.discorsoGlobale);
-        u.lang = "it-IT";
+        u.lang = langCode;
         u.rate = 1.0;
         
         const voci = synth.getVoices();
-        const voceMigliore = voci.find(v => v.lang.includes("it-IT") && v.name.includes("Google")) || 
-                             voci.find(v => v.lang.includes("it-IT"));
+        const voceMigliore = voci.find(v => v.lang.includes(langCode) && v.name.includes("Google")) ||
+                             voci.find(v => v.lang.includes(langCode));
         
         if (voceMigliore) u.voice = voceMigliore;
         synth.speak(u);
     }
 
-    // Funzione di STOP ASSOLUTO
     function stoppaTutto() {
-        // 1. Rimuoviamo immediatamente gli ascoltatori che farebbero ripartire la voce
         document.body.removeEventListener('touchstart', attivaTutto);
         document.body.removeEventListener('click', attivaTutto);
-        
-        // 2. Cancelliamo la voce in corso
         synth.cancel();
-        
-        // 3. Fermiamo l'audio MP3
         if (audioSottofondo) {
             audioSottofondo.pause();
             audioSottofondo.currentTime = 0;
         }
-        
-        console.log("Audio e voce stoppati forzatamente.");
     }
 
     window.addEventListener("DOMContentLoaded", () => {
         const messaggioElem = document.querySelector('.messaggio p');
         if (!messaggioElem) return;
 
-        const testoOriginale = messaggioElem.innerText;
+        const pG = parseInt("<%= puntiGiocatore %>");
         window.discorsoGlobale = "";
 
-        if (testoOriginale.includes("Complimenti")) {
-            window.discorsoGlobale = "Uè uè, facimme festa! Complimenti <%= nomeGiocatore %>, ha' vinciuto tu e ha' fatto tre punte! ";
+        if (linguaAttuale === "it") {
+            // Audio Napoletano/Italiano
+            if (pG === 3) {
+                window.discorsoGlobale = "Uè uè, facimme festa! Complimenti <%= nomeGiocatore %>, ha' vinciuto tu e ha' fatto tre punte! ";
+            } else {
+                window.discorsoGlobale = "Uè uè, <%= nomeGiocatore %>... chillu là ha fatto tre punte primma 'e te. Tu ha' perzo! Ma nun te preoccupà, riprova!";
+            }
+            window.discorsoGlobale += " Arrivederci e statte bbuono!";
         } else {
-            window.discorsoGlobale = "Uè uè, <%= nomeGiocatore %>... chillu là ha fatto tre punte primma 'e te. Tu ha' perzo! Ma nun te preoccupà, riprova!";
+            // Audio Inglese
+            if (pG === 3) {
+                window.discorsoGlobale = "Congratulations <%= nomeGiocatore %>, you won the match by reaching three points! Well done!";
+            } else {
+                window.discorsoGlobale = "Oh no, <%= nomeGiocatore %>, your opponent reached three points first. You lost this time, but don't give up, try again!";
+            }
+            window.discorsoGlobale += " Goodbye!";
         }
-        window.discorsoGlobale += " Arrivederci e statte bbuono!";
 
-        // Avvio ritardato (per PC)
         setTimeout(() => {
             if (!synth.speaking) attivaTutto();
         }, 500);
 
-        // Sblocco per mobile: aggiungiamo gli ascoltatori
         document.body.addEventListener('touchstart', attivaTutto, { once: true });
         document.body.addEventListener('click', attivaTutto, { once: true });
-
-        // Sicurezza per chiusura tab
         window.addEventListener("pagehide", stoppaTutto);
     });
     </script>

@@ -1,23 +1,39 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="<%= lingua %>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Morra Medievale - Battaglia</title>
     <link rel="stylesheet" href="/style2.css">
+    <style>
+        .switch-lingua-bar { display: inline-block; margin-left: auto; }
+        .switch-lingua-bar button { background: #eee; border: 1px solid #ccc; cursor: pointer; padding: 2px 8px; font-size: 0.8rem;}
+        .switch-lingua-bar button.attivo { background: #333; color: #fff; }
+    </style>
 </head>
 <body>
 
-    <div class="barra-statistiche">
-        <div class="stat">Scontro n. <b><%= numeroPartita %></b></div>
-        <div class="stat">Guerriero: <b><%= nomeGiocatore %> (<%= puntiGiocatore %>)</b></div>
-        <div class="stat">Nemico: <b>Punti (<%= puntiMacchina %>)</b></div>
-        <div class="stat">Vittorie Totali: <b><%= vittoriaGiocatore %> - <%= vittoriaMacchina %></b></div>
+    <div class="barra-statistiche" style="display: flex; align-items: center;">
+        <div class="stat"><%= t.scontro %> <b><%= numeroPartita %></b></div>
+        <div class="stat"><%= t.guerriero %> <b><%= nomeGiocatore %> (<%= puntiGiocatore %>)</b></div>
+        <div class="stat"><%= t.nemico %> <b><%= t.punti %> (<%= puntiMacchina %>)</b></div>
+        <div class="stat"><%= t.vittorieTotali %> <b><%= vittoriaGiocatore %> - <%= vittoriaMacchina %></b></div>
+        
+        <div class="switch-lingua-bar">
+            <form action="/cambia-lingua" method="POST" style="display:inline;">
+                <input type="hidden" name="lingua" value="it">
+                <button type="submit" class="<%= lingua === 'it' ? 'attivo' : '' %>">IT</button>
+            </form>
+            <form action="/cambia-lingua" method="POST" style="display:inline;">
+                <input type="hidden" name="lingua" value="en">
+                <button type="submit" class="<%= lingua === 'en' ? 'attivo' : '' %>">EN</button>
+            </form>
+        </div>
     </div>
 
     <div class="schermo">
         <div class="lato utente">
-            <div class="titolo">Scegli la tua arma, <%= nomeGiocatore %></div>
+            <div class="titolo"><%= t.scegliArma %> <%= nomeGiocatore %></div>
             <div class="scelte">
                 <% const opzioni = ['sasso', 'carta', 'forbici']; %>
                 <% opzioni.forEach(scelta => { %>
@@ -29,25 +45,24 @@
                         </button>
                     </form>
                     <div class="nome">
-                        <%= scelta.charAt(0).toUpperCase() + scelta.slice(1) %>
-                    </div>
+                        <%= t[scelta] %> </div>
                 </div>
                 <% }) %>
             </div>
         </div>
 
         <div class="lato macchina">
-            <div class="titolo">Mossa dell'Avversario</div>
+            <div class="titolo"><%= t.mossaAvversario %></div>
             <div class="scelte">
                 <% opzioni.forEach(opt => { %>
                 <div class="box-scelta">
-                    <img src="/<%= opt %>.png"
-                        class="img-scelta macchina-img <%= gioco && gioco.computer && gioco.computer.scelta === opt ? 'scelta-attiva' : '' %>"
-                        style="<%= gioco && gioco.computer && gioco.computer.scelta === opt ? '' : 'opacity: 0.2; filter: grayscale(1);' %>">
-                    <div class="nome">
-                        <%= opt.charAt(0).toUpperCase() + opt.slice(1) %>
-                    </div>
-                </div>
+    <img src="/<%= opt %>.png"
+         class="img-scelta macchina-img <%= gioco && gioco.computer && gioco.computer.scelta === opt ? 'scelta-attiva' : '' %>"
+         style="<%= gioco && gioco.computer && gioco.computer.scelta === opt ? '' : 'opacity: 0.2; filter: grayscale(1);' %>">
+    <div class="nome">
+        <%= t[opt] %> 
+    </div>
+</div>
                 <% }) %>
             </div>
         </div>
@@ -56,22 +71,22 @@
     <% if (gioco && gioco.giocatore && gioco.computer) { %>
     <div class="pannello-risultati">
         <div class="righe-laterali">
-            <div class="riga-gio">Hai scelto: <%= gioco.giocatore.scelta %></div>
-            <div class="riga-mac">L'avversario ha scelto: <%= gioco.computer.scelta %></div>
+            <div class="riga-gio"><%= t.haiScelto %> <%= t[gioco.giocatore.scelta] %></div>
+            <div class="riga-mac"><%= t.avversarioScelto %> <%= t[gioco.computer.scelta] %></div>
         </div>
 
         <% 
-            let risultato = "Hai perso!";
+            let risultato = t.perso;
             let classeRisultato = "esito-perso";
             if (gioco.giocatore.scelta === gioco.computer.scelta) {
-                risultato = "Pareggio!";
+                risultato = t.pareggio;
                 classeRisultato = "esito-pareggio";
             } else if (
                 (gioco.giocatore.scelta === "sasso" && gioco.computer.scelta === "forbici") ||
                 (gioco.giocatore.scelta === "carta" && gioco.computer.scelta === "sasso") ||
                 (gioco.giocatore.scelta === "forbici" && gioco.computer.scelta === "carta")
             ) {
-                risultato = "Vittoria!";
+                risultato = t.vittoria;
                 classeRisultato = "esito-vinto";
             }
         %>
@@ -89,35 +104,49 @@
 
     window.addEventListener("load", () => {
         const synth = window.speechSynthesis;
+        const linguaAttuale = "<%= lingua %>";
         
         if (sessionStorage.getItem("eseguiTTS") === "true") {
             const esitoElem = document.querySelector('.esito-final');
 
             if (esitoElem) {
-                const segniNap = { 'sasso': "'o sasso", 'carta': "'a carta", 'forbici': "'e forbice" };
                 let gioScelta = "<%= gioco ? gioco.giocatore.scelta : '' %>";
                 let macScelta = "<%= gioco ? gioco.computer.scelta : '' %>";
-                
-                let discorso = "Guagliò, tu ha' scigliuto " + segniNap[gioScelta] + ". ";
-                discorso += "Chillu là ha tirato " + segniNap[macScelta] + ". ";
+                let discorso = "";
+                let langCode = "it-IT";
 
-                let eText = esitoElem.innerText.toLowerCase();
-                if (eText.includes("vittoria")) discorso += "Uè uè! Hai vinciuto tu!";
-                else if (eText.includes("perso")) discorso += "Aggia pacienza, hai perzo.";
-                else discorso += "Simm' pari.";
+                if (linguaAttuale === "it") {
+                    // Logica Napoletano originale
+                    const segniNap = { 'sasso': "'o sasso", 'carta': "'a carta", 'forbici': "'e forbice" };
+                    discorso = "Guagliò, tu ha' scigliuto " + segniNap[gioScelta] + ". ";
+                    discorso += "Chillu là ha tirato " + segniNap[macScelta] + ". ";
+                    let eText = esitoElem.innerText.toLowerCase();
+                    if (eText.includes("vittoria")) discorso += "Uè uè! Hai vinciuto tu!";
+                    else if (eText.includes("perso")) discorso += "Aggia pacienza, hai perzo.";
+                    else idcorso += "Simm' pari.";
+                } else {
+                    // Logica Inglese
+                    langCode = "en-US";
+                    const nomiEn = { 'sasso': 'rock', 'carta': 'paper', 'forbici': 'scissors' };
+                    discorso = "You chose " + nomiEn[gioScelta] + ". ";
+                    discorso += "The opponent chose " + nomiEn[macScelta] + ". ";
+                    let eText = esitoElem.innerText.toLowerCase();
+                    if (eText.includes("victory") || eText.includes("win")) discorso += "Awesome! You won!";
+                    else if (eText.includes("lost") || eText.includes("perzo")) discorso += "Too bad, you lost.";
+                    else discorso += "It's a tie.";
+                }
 
                 const parla = () => {
                     synth.cancel();
                     const utterance = new SpeechSynthesisUtterance(discorso);
-                    utterance.lang = "it-IT";
-                    utterance.rate = 0.9; 
+                    utterance.lang = langCode;
+                    utterance.rate = 0.95; 
                     
                     const voci = synth.getVoices();
-                    const voceMigliore = voci.find(v => v.name.includes('Google') && v.lang.includes('it')) || 
-                                         voci.find(v => v.lang.includes('it'));
+                    const voceMigliore = voci.find(v => v.lang.includes(langCode) && v.name.includes('Google')) || 
+                                         voci.find(v => v.lang.includes(langCode));
                     
                     if(voceMigliore) utterance.voice = voceMigliore;
-
                     utterance.onend = () => {
                         sessionStorage.removeItem("eseguiTTS");
                         controllaFinePartita();
@@ -126,15 +155,10 @@
                     synth.speak(utterance);
                 };
 
-                // Tentativo automatico
                 parla();
-
-                // FONDAMENTALE PER SAFARI MOBILE:
-                // Se l'utente tocca lo schermo (perché il primo tentativo è fallito), riprova a parlare
                 document.body.addEventListener('touchstart', () => {
                     if (!synth.speaking) parla();
                 }, { once: true });
-                
                 document.body.addEventListener('click', () => {
                     if (!synth.speaking) parla();
                 }, { once: true });
@@ -149,7 +173,7 @@
             if (pG >= 3 || pM >= 3) {
                 setTimeout(() => {
                     window.location.href = "/pagina3";
-                }, 500); 
+                }, 500);
             }
         }
     });
